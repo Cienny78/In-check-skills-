@@ -1,1 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Check-in voor je les SKILLS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    input, label, button, select { display: block; width: 100%; margin-top: 10px; font-size: 1em; }
+    #formulier { display: none; }
+    #status { font-weight: bold; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Check-in</h2>
+  <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste lokatie bent om in te checken :-).</p>
+  <button onclick="checkLocation()">📍 Check mijn lokatie</button>
+  <div id="status"></div>
 
+  <div id="formulier">
+    <form onsubmit="verzenden(event)">
+      <label>Wat is je voornaam?</label>
+      <input type="text" id="voornaam" name="voornaam" required>
+      <label>En je achternaam?</label>
+      <input type="text" id="achternaam" name="achternaam" required>
+      <label>Wat is je studentnummer?</label>
+      <input type="text" id="studentnummer" name="studentnummer" required>
+      <label>En je e-mailadres?</label>
+      <input type="email" id="email" name="email" required>
+      <input type="hidden" id="lat" name="lat">
+      <input type="hidden" id="lng" name="lng">
+      <button type="submit">✅ Inchecken</button>
+    </form>
+  </div>
+
+  <script>
+    const locaties = [
+      { lat: 52.0682, lng: 4.3248 },         // Haagse Hogeschool
+      { lat: 52.0360341, lng: 4.3623357 }    // Thuis
+    ];
+    const maxAfstand = 200;
+
+    function afstandInMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function checkLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            document.getElementById('lat').value = lat;
+            document.getElementById('lng').value = lon;
+            const status = document.getElementById('status');
+
+            let goedgekeurd = false;
+            let kortsteAfstand = Infinity;
+
+            for (const locatie of locaties) {
+              const afstand = afstandInMeters(lat, lon, locatie.lat, locatie.lng);
+              if (afstand < maxAfstand) {
+                goedgekeurd = true;
+                break;
+              }
+              if (afstand < kortsteAfstand) {
+                kortsteAfstand = afstand;
+              }
+            }
+
+            if (goedgekeurd) {
+              status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
+              document.getElementById('formulier').style.display = 'block';
+            } else {
+              const afgerond = Math.round(kortsteAfstand);
+              status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
+            }
+          },
+          () => {
+            document.getElementById('status').textContent = '📍 We konden je locatie niet vinden of je hebt het geweigerd.';
+          }
+        );
+      } else {
+        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
+      }
+    }
+
+    function verzenden(event) {
+      event.preventDefault();
+
+      const vandaag = new Date().toISOString().split("T")[0];
+      const laatstIngecheckt = localStorage.getItem("checkin_datum");
+
+      if (laatstIngecheckt === vandaag) {
+        alert("⏳ Je hebt vandaag al ingecheckt op dit apparaat.");
+        return;
+      }
+
+      const form = event.target;
+      const formData = new FormData(form);
+      formData.append('tijd', new Date().toLocaleString());
+
+      fetch("https://script.google.com/macros/s/AKfycbzqa0p7bQxTAWhq-bFKxsgVZ6uyOjhbKN8SxPVbBgjGxFOUKN7nY5FEinRmIuZla0daNQ/exec", {
+        method: "POST",
+        body: formData
+      })
+      .then(response => response.text())
+      .then(text => {
+        if (text === "OK") {
+          alert("✅ Je bent ingecheckt. Dankjewel!");
+          localStorage.setItem("checkin_datum", vandaag);
+          form.reset();
+          document.getElementById("formulier").style.display = "none";
+          document.getElementById("status").textContent = "";
+        } else if (text === "AL_GEDAAN_VANDAAG") {
+          alert("⏳ Je hebt vandaag al ingecheckt (volgens het systeem).");
+        } else {
+          alert("❌ Oei! Het opslaan ging mis.");
+        }
+      })
+      .catch(error => {
+        alert("❌ Foutje bij het versturen: " + error.message);
+      });
+    }
+  </script>
+</body>
+</html>
