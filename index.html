@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Check-in voor je les Skills of PL</title>
+  <title>Check-in voor Skills of PL|s</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
@@ -9,29 +9,25 @@
     #formulier { display: none; }
     #status { font-weight: bold; margin-top: 20px; }
     #retryButton { display: none; }
-    #alIngechecktMelding { color: red; font-weight: bold; margin-top: 30px; }
-    .success { color: green; }
-    /* Modal styles */
-    #alIngechecktModal {
-      display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.5);
+
+    #melding {
+      display: none;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
     }
-    #alIngechecktModal .modal-content {
-      background: #fff; padding: 30px 20px; max-width: 350px; margin: 15vh auto; border-radius: 12px;
-      box-shadow: 0 4px 32px #0006; text-align: center;
-    }
-    #alIngechecktModal button {
-      margin-top: 20px; padding: 7px 24px;
-    }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .info { background-color: #cce5ff; color: #004085; }
   </style>
 </head>
 <body>
-  <h2>Check-in Skills of PL</h2>
+  <h2>Check-in Skills of PL|s</h2>
+  <div id="melding"></div>
   <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
-  <button onclick="checkLocation()" id="checkLocatieBtn">📍 Check mijn locatie</button>
+  <button onclick="checkLocation()">📍 Check mijn locatie</button>
   <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
   <div id="status"></div>
-  <div id="alIngechecktMelding"></div>
 
   <div id="formulier">
     <form onsubmit="verzenden(event)">
@@ -49,23 +45,24 @@
     </form>
   </div>
 
-  <!-- Modal voor al ingecheckt melding -->
-  <div id="alIngechecktModal">
-    <div class="modal-content">
-      <p style="font-size:1.15em; color:#c00; font-weight:bold;">
-        Je hebt vandaag al voor deze les ingecheckt op dit apparaat.
-      </p>
-      <button onclick="closeAlIngechecktModal()">OK</button>
-    </div>
-  </div>
-
   <script>
     const locaties = [
-      { lat: 52.0682, lng: 4.3248 },         // Haagse Hogeschool
-      { lat: 52.0360341, lng: 4.3623357 },   // Thuis (voorbeeld)
-      { lat: 52.0668769, lng: 4.3235892 }    // Skillslab
+      { lat: 52.0682, lng: 4.3248 },
+      { lat: 52.0360341, lng: 4.3623357 },
+      { lat: 52.0668769, lng: 4.3235892 }
     ];
-    const maxAfstand = 250; // meters
+    const maxAfstand = 250;
+
+    function toonMelding(tekst, type) {
+      const melding = document.getElementById("melding");
+      melding.className = "";
+      melding.classList.add(type);
+      melding.textContent = tekst;
+      melding.style.display = "block";
+      setTimeout(() => {
+        melding.style.display = "none";
+      }, 5000);
+    }
 
     function afstandInMeters(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
@@ -80,14 +77,13 @@
 
     function checkLocation() {
       document.getElementById('retryButton').style.display = 'none';
-      document.getElementById('alIngechecktMelding').textContent = '';
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           locatieSucces,
           locatieMislukt
         );
       } else {
-        setStatus('❌ Je apparaat ondersteunt geen GPS.', 'error');
+        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
       }
     }
 
@@ -103,6 +99,7 @@
       const lon = position.coords.longitude;
       document.getElementById('lat').value = lat;
       document.getElementById('lng').value = lon;
+      const status = document.getElementById('status');
       document.getElementById('retryButton').style.display = 'none';
 
       let goedgekeurd = false;
@@ -120,40 +117,34 @@
       }
 
       if (goedgekeurd) {
-        setStatus("✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.", 'success');
+        status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
         document.getElementById('formulier').style.display = 'block';
       } else {
         const afgerond = Math.round(kortsteAfstand);
-        setStatus(`❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`, 'error');
-        document.getElementById('formulier').style.display = 'none';
+        status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
       }
     }
 
     function locatieMislukt() {
-      setStatus('📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.', 'error');
+      document.getElementById('status').textContent =
+        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
       document.getElementById('retryButton').style.display = 'block';
     }
 
     function locatieMisluktFinal() {
-      setStatus('❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.', 'error');
+      document.getElementById('status').textContent =
+        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
       document.getElementById('retryButton').style.display = 'none';
-    }
-
-    function setStatus(message, type) {
-      const statusDiv = document.getElementById('status');
-      statusDiv.textContent = message;
-      statusDiv.className = type || '';
     }
 
     function verzenden(event) {
       event.preventDefault();
-      document.getElementById('alIngechecktMelding').textContent = '';
 
       const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum");
+      const laatstIngecheckt = localStorage.getItem("checkin_datum_skills");
 
       if (laatstIngecheckt === vandaag) {
-        showAlIngechecktModal();
+        toonMelding("⏳ Je hebt vandaag al ingecheckt op dit apparaat.", "info");
         return;
       }
 
@@ -168,27 +159,20 @@
       .then(response => response.text())
       .then(text => {
         if (text === "OK") {
-          setStatus("✅ Je bent ingecheckt. Dankjewel!", "success");
-          localStorage.setItem("checkin_datum", vandaag);
+          toonMelding("✅ Je bent ingecheckt. Dankjewel!", "success");
+          localStorage.setItem("checkin_datum_skills", vandaag);
           form.reset();
           document.getElementById("formulier").style.display = "none";
+          document.getElementById("status").textContent = "";
         } else if (text === "AL_GEDAAN_VANDAAG") {
-          showAlIngechecktModal();
-          document.getElementById("formulier").style.display = "none";
+          toonMelding("⏳ Je hebt vandaag al ingecheckt (volgens het systeem).", "info");
         } else {
-          setStatus("❌ Oei! Het opslaan ging mis.", "error");
+          toonMelding("❌ Oei! Het opslaan ging mis.", "error");
         }
       })
       .catch(error => {
-        setStatus("❌ Foutje bij het versturen: " + error.message, "error");
+        toonMelding("❌ Foutje bij het versturen: " + error.message, "error");
       });
-    }
-
-    function showAlIngechecktModal() {
-      document.getElementById('alIngechecktModal').style.display = 'block';
-    }
-    function closeAlIngechecktModal() {
-      document.getElementById('alIngechecktModal').style.display = 'none';
     }
   </script>
 </body>
