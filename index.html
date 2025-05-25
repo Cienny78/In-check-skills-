@@ -78,23 +78,6 @@ const maxAfstand = 200; // meters
               }
             }
 
-            if (goedgekeurd) {
-              status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
-              document.getElementById('formulier').style.display = 'block';
-            } else {
-              const afgerond = Math.round(kortsteAfstand);
-              status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
-            }
-          },
-          () => {
-            document.getElementById('status').textContent = '📍 We konden je locatie niet vinden of je hebt het geweigerd.';
-          }
-        );
-      } else {
-        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
-      }
-    }
-
     function verzenden(event) {
       event.preventDefault();
 
