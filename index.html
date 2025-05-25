@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Check-in voor je les Skills of Pl|s</title>
+  <title>Check-in voor je les Skills of PL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
@@ -10,10 +10,11 @@
     #status { font-weight: bold; margin-top: 20px; }
     #retryButton { display: none; }
     #alIngechecktMelding { color: red; font-weight: bold; margin-top: 30px; }
+    .success { color: green; }
   </style>
 </head>
 <body>
-  <h2>Check-in SKills of PL|s </h2>
+  <h2>Check-in Skills of PL33</h2>
   <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
   <button onclick="checkLocation()" id="checkLocatieBtn">📍 Check mijn locatie</button>
   <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
@@ -44,23 +45,6 @@
     ];
     const maxAfstand = 250; // meters
 
-    // Controle bij laden van de pagina
-    window.onload = function() {
-      controleerAlIngecheckt();
-    };
-
-    function controleerAlIngecheckt() {
-      const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum");
-      if (laatstIngecheckt === vandaag) {
-        document.getElementById('formulier').style.display = "none";
-        document.getElementById('checkLocatieBtn').style.display = "none";
-        document.getElementById('status').textContent = "";
-        document.getElementById('alIngechecktMelding').textContent =
-          "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
-      }
-    }
-
     function afstandInMeters(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
       const φ1 = lat1 * Math.PI / 180;
@@ -73,26 +57,15 @@
     }
 
     function checkLocation() {
-      // Controleer opnieuw, mocht gebruiker JS resetten!
-      const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum");
-      if (laatstIngecheckt === vandaag) {
-        document.getElementById('formulier').style.display = "none";
-        document.getElementById('checkLocatieBtn').style.display = "none";
-        document.getElementById('status').textContent = "";
-        document.getElementById('alIngechecktMelding').textContent =
-          "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
-        return;
-      }
-
       document.getElementById('retryButton').style.display = 'none';
+      document.getElementById('alIngechecktMelding').textContent = '';
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           locatieSucces,
           locatieMislukt
         );
       } else {
-        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
+        setStatus('❌ Je apparaat ondersteunt geen GPS.', 'error');
       }
     }
 
@@ -104,23 +77,10 @@
     }
 
     function locatieSucces(position) {
-      // Controleer opnieuw op al ingecheckt
-      const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum");
-      if (laatstIngecheckt === vandaag) {
-        document.getElementById('formulier').style.display = "none";
-        document.getElementById('checkLocatieBtn').style.display = "none";
-        document.getElementById('status').textContent = "";
-        document.getElementById('alIngechecktMelding').textContent =
-          "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
-        return;
-      }
-
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
       document.getElementById('lat').value = lat;
       document.getElementById('lng').value = lon;
-      const status = document.getElementById('status');
       document.getElementById('retryButton').style.display = 'none';
 
       let goedgekeurd = false;
@@ -138,38 +98,41 @@
       }
 
       if (goedgekeurd) {
-        status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
+        setStatus("✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.", 'success');
         document.getElementById('formulier').style.display = 'block';
       } else {
         const afgerond = Math.round(kortsteAfstand);
-        status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
+        setStatus(`❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`, 'error');
+        document.getElementById('formulier').style.display = 'none';
       }
     }
 
     function locatieMislukt() {
-      document.getElementById('status').textContent =
-        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
+      setStatus('📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.', 'error');
       document.getElementById('retryButton').style.display = 'block';
     }
 
     function locatieMisluktFinal() {
-      document.getElementById('status').textContent =
-        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
+      setStatus('❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.', 'error');
       document.getElementById('retryButton').style.display = 'none';
+    }
+
+    function setStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = type || '';
     }
 
     function verzenden(event) {
       event.preventDefault();
+      document.getElementById('alIngechecktMelding').textContent = '';
 
       const vandaag = new Date().toISOString().split("T")[0];
       const laatstIngecheckt = localStorage.getItem("checkin_datum");
 
-      // Veiligheid: nogmaals check
       if (laatstIngecheckt === vandaag) {
         document.getElementById('alIngechecktMelding').textContent =
           "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
-        document.getElementById('formulier').style.display = "none";
-        document.getElementById('checkLocatieBtn').style.display = "none";
         return;
       }
 
@@ -184,25 +147,20 @@
       .then(response => response.text())
       .then(text => {
         if (text === "OK") {
-          alert("✅ Je bent ingecheckt. Dankjewel!");
+          setStatus("✅ Je bent ingecheckt. Dankjewel!", "success");
           localStorage.setItem("checkin_datum", vandaag);
           form.reset();
           document.getElementById("formulier").style.display = "none";
-          document.getElementById("status").textContent = "";
-          document.getElementById('checkLocatieBtn').style.display = "none";
-          document.getElementById('alIngechecktMelding').textContent =
-            "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
         } else if (text === "AL_GEDAAN_VANDAAG") {
           document.getElementById('alIngechecktMelding').textContent =
             "⏳ Je hebt vandaag al ingecheckt (volgens het systeem).";
           document.getElementById("formulier").style.display = "none";
-          document.getElementById('checkLocatieBtn').style.display = "none";
         } else {
-          alert("❌ Oei! Het opslaan ging mis.");
+          setStatus("❌ Oei! Het opslaan ging mis.", "error");
         }
       })
       .catch(error => {
-        alert("❌ Foutje bij het versturen: " + error.message);
+        setStatus("❌ Foutje bij het versturen: " + error.message, "error");
       });
     }
   </script>
