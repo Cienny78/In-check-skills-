@@ -11,10 +11,22 @@
     #retryButton { display: none; }
     #alIngechecktMelding { color: red; font-weight: bold; margin-top: 30px; }
     .success { color: green; }
+    /* Modal styles */
+    #alIngechecktModal {
+      display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+    }
+    #alIngechecktModal .modal-content {
+      background: #fff; padding: 30px 20px; max-width: 350px; margin: 15vh auto; border-radius: 12px;
+      box-shadow: 0 4px 32px #0006; text-align: center;
+    }
+    #alIngechecktModal button {
+      margin-top: 20px; padding: 7px 24px;
+    }
   </style>
 </head>
 <body>
-  <h2>Check-in Skills of PL33</h2>
+  <h2>Check-in Skills of PL</h2>
   <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
   <button onclick="checkLocation()" id="checkLocatieBtn">📍 Check mijn locatie</button>
   <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
@@ -35,6 +47,16 @@
       <input type="hidden" id="lng" name="lng">
       <button type="submit">✅ Inchecken</button>
     </form>
+  </div>
+
+  <!-- Modal voor al ingecheckt melding -->
+  <div id="alIngechecktModal">
+    <div class="modal-content">
+      <p style="font-size:1.15em; color:#c00; font-weight:bold;">
+        Je hebt vandaag al voor deze les ingecheckt op dit apparaat.
+      </p>
+      <button onclick="closeAlIngechecktModal()">OK</button>
+    </div>
   </div>
 
   <script>
@@ -131,8 +153,7 @@
       const laatstIngecheckt = localStorage.getItem("checkin_datum");
 
       if (laatstIngecheckt === vandaag) {
-        document.getElementById('alIngechecktMelding').textContent =
-          "⏳ Je hebt vandaag al ingecheckt op dit apparaat. Je kunt vandaag niet nogmaals inchecken.";
+        showAlIngechecktModal();
         return;
       }
 
@@ -152,8 +173,7 @@
           form.reset();
           document.getElementById("formulier").style.display = "none";
         } else if (text === "AL_GEDAAN_VANDAAG") {
-          document.getElementById('alIngechecktMelding').textContent =
-            "⏳ Je hebt vandaag al ingecheckt (volgens het systeem).";
+          showAlIngechecktModal();
           document.getElementById("formulier").style.display = "none";
         } else {
           setStatus("❌ Oei! Het opslaan ging mis.", "error");
@@ -162,6 +182,13 @@
       .catch(error => {
         setStatus("❌ Foutje bij het versturen: " + error.message, "error");
       });
+    }
+
+    function showAlIngechecktModal() {
+      document.getElementById('alIngechecktModal').style.display = 'block';
+    }
+    function closeAlIngechecktModal() {
+      document.getElementById('alIngechecktModal').style.display = 'none';
     }
   </script>
 </body>
