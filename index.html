@@ -1,163 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
-  <title>Check-in voor je les Skills of Pl|s</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
-    input, label, button, select { display: block; width: 100%; margin-top: 10px; font-size: 1em; }
-    #formulier { display: none; }
-    #status { font-weight: bold; margin-top: 20px; }
-    #retryButton { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Inchecken</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .hidden { display: none; }
+        .message { color: green; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <h2>Check-in Skills of PL|s 22 </h2>
-  <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
-  <button onclick="checkLocation()">📍 Check mijn locatie</button>
-  <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
-  <div id="status"></div>
+    <h1>Incheckformulier</h1>
+    <div id="form-container">
+        <form id="checkin-form">
+            <label for="name">Naam:</label><br>
+            <input type="text" id="name" name="name" required><br><br>
+            <button type="submit">Inchecken</button>
+        </form>
+    </div>
+    <div id="already-checked-in" class="hidden message">
+        ⏳ Je hebt vandaag al ingecheckt!
+    </div>
+    <div id="thanks-message" class="hidden message">
+        Bedankt voor het inchecken!
+    </div>
 
-  <div id="formulier">
-    <form onsubmit="verzenden(event)">
-      <label>Wat is je voornaam?</label>
-      <input type="text" id="voornaam" name="voornaam" required>
-      <label>En je achternaam?</label>
-      <input type="text" id="achternaam" name="achternaam" required>
-      <label>Wat is je studentnummer?</label>
-      <input type="text" id="studentnummer" name="studentnummer" required>
-      <label>En je e-mailadres?</label>
-      <input type="email" id="email" name="email" required>
-      <input type="hidden" id="lat" name="lat">
-      <input type="hidden" id="lng" name="lng">
-      <button type="submit">✅ Inchecken</button>
-    </form>
-  </div>
-
-  <script>
-    // Voeg je formId toe als je dat gebruikt in je backend, of zet het anders op een lege string
-    const formId = '';
-
-    const locaties = [
-      { lat: 52.0682, lng: 4.3248 },         // Haagse Hogeschool
-      { lat: 52.0360341, lng: 4.3623357 },   // Thuis (voorbeeld)
-      { lat: 52.0668769, lng: 4.3235892 }    // Skillslab
-    ];
-    const maxAfstand = 250; // meters
-
-    function afstandInMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    function checkLocation() {
-      document.getElementById('retryButton').style.display = 'none';
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          locatieSucces,
-          locatieMislukt
-        );
-      } else {
-        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
-      }
-    }
-
-    function retryLocation() {
-      navigator.geolocation.getCurrentPosition(
-        locatieSucces,
-        locatieMisluktFinal
-      );
-    }
-
-    function locatieSucces(position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      document.getElementById('lat').value = lat;
-      document.getElementById('lng').value = lon;
-      const status = document.getElementById('status');
-      document.getElementById('retryButton').style.display = 'none';
-
-      let goedgekeurd = false;
-      let kortsteAfstand = Infinity;
-
-      for (const locatie of locaties) {
-        const afstand = afstandInMeters(lat, lon, locatie.lat, locatie.lng);
-        if (afstand < maxAfstand) {
-          goedgekeurd = true;
-          break;
+    <script>
+        function getTodayKey() {
+            const today = new Date();
+            // Format: YYYY-MM-DD
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            return `checked_in_${yyyy}-${mm}-${dd}`;
         }
-        if (afstand < kortsteAfstand) {
-          kortsteAfstand = afstand;
-        }
-      }
 
-      if (goedgekeurd) {
-        status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
-        document.getElementById('formulier').style.display = 'block';
-      } else {
-        const afgerond = Math.round(kortsteAfstand);
-        status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
-      }
-    }
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('checkin-form');
+            const formContainer = document.getElementById('form-container');
+            const alreadyCheckedIn = document.getElementById('already-checked-in');
+            const thanksMessage = document.getElementById('thanks-message');
+            const todayKey = getTodayKey();
 
-    function locatieMislukt() {
-      document.getElementById('status').textContent =
-        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
-      document.getElementById('retryButton').style.display = 'block';
-    }
+            if (localStorage.getItem(todayKey)) {
+                // Student heeft vandaag al ingecheckt
+                formContainer.classList.add('hidden');
+                alreadyCheckedIn.classList.remove('hidden');
+            } else {
+                formContainer.classList.remove('hidden');
+                alreadyCheckedIn.classList.add('hidden');
+            }
 
-    function locatieMisluktFinal() {
-      document.getElementById('status').textContent =
-        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
-      document.getElementById('retryButton').style.display = 'none';
-    }
-
-    function verzenden(event) {
-      event.preventDefault();
-
-      const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum");
-
-      if (laatstIngecheckt === vandaag) {
-        if (!confirm("⏳ Je hebt vandaag al ingecheckt op dit apparaat. Weet je zeker dat je het nogmaals wilt versturen?")) {
-          return; // Stoppen als gebruiker annuleert
-        }
-        // Klik je OK, wordt het formulier alsnog verzonden
-      }
-
-      const form = event.target;
-      const formData = new FormData(form);
-      formData.append('tijd', new Date().toLocaleString());
-      formData.append('formulier', formId);
-
-      fetch("https://script.google.com/macros/s/AKfycbycrqF6B87tM2KBVucIUDDdXIebDw5lFfZ2CfR1Ez5-VjY-YSms2Jse-b5UDZ_pu1tO/exec", {
-        method: "POST",
-        body: formData
-      })
-      .then(response => response.text())
-      .then(text => {
-        if (text === "OK") {
-          alert("✅ Je bent ingecheckt. Dankjewel!");
-          localStorage.setItem("checkin_datum", vandaag);
-          form.reset();
-          document.getElementById("formulier").style.display = "none";
-          document.getElementById("status").textContent = "";
-        } else if (text === "AL_GEDAAN_VANDAAG") {
-          alert("⏳ Je hebt vandaag al ingecheckt (volgens het systeem).");
-        } else {
-          alert("❌ Oei! Het opslaan ging mis.");
-        }
-      })
-      .catch(error => {
-        alert("❌ Foutje bij het versturen: " + error.message);
-      });
-    }
-  </script>
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Sla op dat gebruiker vandaag heeft ingecheckt
+                localStorage.setItem(todayKey, 'true');
+                formContainer.classList.add('hidden');
+                thanksMessage.classList.remove('hidden');
+                alreadyCheckedIn.classList.add('hidden');
+            });
+        });
+    </script>
 </body>
 </html>
