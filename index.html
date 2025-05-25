@@ -88,26 +88,18 @@
               status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
               document.getElementById('formulier').style.display = 'none';
             }
-          },
-          (error) => {
-            if (error.code === 1) { // Gebruiker weigert locatie
-              status.textContent = '📍 Je hebt locatie delen geweigerd. Sta locatie delen toe om in te checken.';
-            } else if (error.code === 2) { // Positie niet beschikbaar
-              status.textContent = '❌ Locatie niet beschikbaar. Probeer het opnieuw of gebruik een ander apparaat.';
-            } else if (error.code === 3) { // Timeout
-              status.textContent = '⏳ Locatie ophalen duurt te lang. Probeer het opnieuw.';
-            } else {
-              status.textContent = '❌ Onbekende fout bij het ophalen van je locatie.';
-            }
-            document.getElementById('formulier').style.display = 'none';
-          },
-          { timeout: 10000 }
-        );
-      } else {
-        status.textContent = "❌ Jouw browser ondersteunt geen locatiebepaling.";
-      }
+          }
+           function locatieMislukt() {
+      document.getElementById('status').textContent =
+        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
+      document.getElementById('retryButton').style.display = 'block';
     }
 
+    function locatieMisluktFinal() {
+      document.getElementById('status').textContent =
+        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
+      document.getElementById('retryButton').style.display = 'none';
+    }
     function verzenden(event) {
       event.preventDefault();
 
