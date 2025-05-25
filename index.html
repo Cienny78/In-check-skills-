@@ -78,6 +78,27 @@ const maxAfstand = 200; // meters
                 kortsteAfstand = afstand;
               }
             }
+            
+      if (goedgekeurd) {
+        status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
+        document.getElementById('formulier').style.display = 'block';
+      } else {
+        const afgerond = Math.round(kortsteAfstand);
+        status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
+      }
+    }
+
+    function locatieMislukt() {
+      document.getElementById('status').textContent =
+        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
+      document.getElementById('retryButton').style.display = 'block';
+    }
+
+    function locatieMisluktFinal() {
+      document.getElementById('status').textContent =
+        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
+      document.getElementById('retryButton').style.display = 'none';
+    }
 
     function verzenden(event) {
       event.preventDefault();
