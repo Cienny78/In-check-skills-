@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-  <h2>Check-in Skills of PL|s </h2>
+  <h2>Check-in Skills of PL|s 22 </h2>
   <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
   <button onclick="checkLocation()">📍 Check mijn locatie</button>
   <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
@@ -35,6 +35,9 @@
   </div>
 
   <script>
+    // Voeg je formId toe als je dat gebruikt in je backend, of zet het anders op een lege string
+    const formId = '';
+
     const locaties = [
       { lat: 52.0682, lng: 4.3248 },         // Haagse Hogeschool
       { lat: 52.0360341, lng: 4.3623357 },   // Thuis (voorbeeld)
@@ -122,9 +125,11 @@
       const laatstIngecheckt = localStorage.getItem("checkin_datum");
 
       if (laatstIngecheckt === vandaag) {
-        alert("⏳ Je hebt vandaag al ingecheckt op dit apparaat.");
-        return;
-}
+        if (!confirm("⏳ Je hebt vandaag al ingecheckt op dit apparaat. Weet je zeker dat je het nogmaals wilt versturen?")) {
+          return; // Stoppen als gebruiker annuleert
+        }
+        // Klik je OK, wordt het formulier alsnog verzonden
+      }
 
       const form = event.target;
       const formData = new FormData(form);
@@ -135,7 +140,6 @@
         method: "POST",
         body: formData
       })
-
       .then(response => response.text())
       .then(text => {
         if (text === "OK") {
