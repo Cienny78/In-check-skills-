@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
-  <title>Check-in voor Skills of PL|s</title>
+  <meta charset="utf-8" />
+  <title>Check-in voor Praktijkleren (PL1 of PL2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root{
+      --btn: #007bff;
+      --btn-disabled: #a0a0a0;
+      --btn-ok: #28a745;
+    }
     body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
     input, label, button, select { display: block; width: 100%; margin-top: 10px; font-size: 1em; }
-    #formulier { display: none; }
-    #status { font-weight: bold; margin-top: 20px; }
-    #retryButton { display: none; }
 
     #melding {
       display: none;
@@ -19,159 +22,154 @@
     .success { background-color: #d4edda; color: #155724; }
     .error { background-color: #f8d7da; color: #721c24; }
     .info { background-color: #cce5ff; color: #004085; }
+
+    .btn {
+      background: var(--btn);
+      color: #fff;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn:disabled {
+      background: var(--btn-disabled);
+      cursor: not-allowed;
+      opacity: 0.9;
+    }
+    .btn-ok { background: var(--btn-ok); }
+
+    .loading-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spinner {
+      width: 1em;
+      height: 1em;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    [aria-live] { min-height: 1.2em; }
   </style>
 </head>
 <body>
-  <h2>Check-in Skills of PL|s</h2>
-  <div id="melding"></div>
-  <p>Ben je op school? Klik op de knop hieronder om te kijken of je op de juiste locatie bent om in te checken :-).</p>
-  <button onclick="checkLocation()">📍 Check mijn locatie</button>
-  <button id="retryButton" onclick="retryLocation()">Probeer locatie delen opnieuw</button>
-  <div id="status"></div>
+  <h2>Check-in PL1 of PL2</h2>
 
-  <div id="formulier">
-    <form onsubmit="verzenden(event)">
-      <label>Wat is je voornaam?</label>
-      <input type="text" id="voornaam" name="voornaam" required>
-      <label>En je achternaam?</label>
-      <input type="text" id="achternaam" name="achternaam" required>
-      <label>Wat is je studentnummer?</label>
-      <input type="text" id="studentnummer" name="studentnummer" required>
-      <label>En je e-mailadres?</label>
-      <input type="email" id="email" name="email" required>
-      <input type="hidden" id="lat" name="lat">
-      <input type="hidden" id="lng" name="lng">
-      <button type="submit">✅ Inchecken</button>
-    </form>
-  </div>
+  <div id="melding"></div>
+
+  <p>Inchecken is simpel: vul je gegevens in en klik op <em>Inchecken</em>. Klaar! 📚✅</p>
+
+  <form id="formulier" onsubmit="verzenden(event)">
+    <label>Wat is je voornaam?</label>
+    <input type="text" id="voornaam" name="voornaam" required>
+    <label>En je achternaam?</label>
+    <input type="text" id="achternaam" name="achternaam" required>
+    <label>Wat is je studentnummer?</label>
+    <input type="text" id="studentnummer" name="studentnummer" required>
+    <label>En je e-mailadres?</label>
+    <input type="email" id="email" name="email" required>
+
+    <button id="submitButton" type="submit" class="btn">✅ Inchecken</button>
+  </form>
 
   <script>
-    const locaties = [
-      { lat: 52.0682, lng: 4.3248 },
-      { lat: 52.0360341, lng: 4.3623357 },
-      { lat: 52.0668769, lng: 4.3235892 }
-    ];
-    const maxAfstand = 250;
-
+    // ---- UI helpers ----
+    function setLoading(btn, text) {
+      if (!btn) return;
+      btn.dataset.originalText = btn.dataset.originalText || btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-text"><span class="spinner"></span>${text}</span>`;
+    }
+    function clearLoading(btn) {
+      if (!btn) return;
+      btn.disabled = false;
+      if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+    }
+    function setSuccess(btn, text) {
+      if (!btn) return;
+      btn.classList.add('btn-ok');
+      btn.disabled = true;
+      btn.innerHTML = text;
+    }
+    function disableForm(form, on) {
+      [...form.elements].forEach(el => el.disabled = on);
+    }
     function toonMelding(tekst, type) {
       const melding = document.getElementById("melding");
       melding.className = "";
       melding.classList.add(type);
       melding.textContent = tekst;
       melding.style.display = "block";
-      setTimeout(() => {
-        melding.style.display = "none";
-      }, 5000);
+      setTimeout(() => { melding.style.display = "none"; }, 5000);
     }
 
-    function afstandInMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    function checkLocation() {
-      document.getElementById('retryButton').style.display = 'none';
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          locatieSucces,
-          locatieMislukt
-        );
-      } else {
-        document.getElementById('status').textContent = '❌ Je apparaat ondersteunt geen GPS.';
-      }
-    }
-
-    function retryLocation() {
-      navigator.geolocation.getCurrentPosition(
-        locatieSucces,
-        locatieMisluktFinal
-      );
-    }
-
-    function locatieSucces(position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      document.getElementById('lat').value = lat;
-      document.getElementById('lng').value = lon;
-      const status = document.getElementById('status');
-      document.getElementById('retryButton').style.display = 'none';
-
-      let goedgekeurd = false;
-      let kortsteAfstand = Infinity;
-
-      for (const locatie of locaties) {
-        const afstand = afstandInMeters(lat, lon, locatie.lat, locatie.lng);
-        if (afstand < maxAfstand) {
-          goedgekeurd = true;
-          break;
-        }
-        if (afstand < kortsteAfstand) {
-          kortsteAfstand = afstand;
-        }
-      }
-
-      if (goedgekeurd) {
-        status.textContent = "✅ Top! Je bent op de juiste plek. Vul nu je gegevens in.";
-        document.getElementById('formulier').style.display = 'block';
-      } else {
-        const afgerond = Math.round(kortsteAfstand);
-        status.textContent = `❌ Oeps! Je bent niet op een goedgekeurde plek. Je zit nu ongeveer ${afgerond} meter van de dichtstbijzijnde locatie.`;
-      }
-    }
-
-    function locatieMislukt() {
-      document.getElementById('status').textContent =
-        '📍 We konden je locatie niet vinden of je hebt het geweigerd. Probeer het opnieuw.';
-      document.getElementById('retryButton').style.display = 'block';
-    }
-
-    function locatieMisluktFinal() {
-      document.getElementById('status').textContent =
-        '❌ Locatie ophalen lukt niet. Controleer je browserinstellingen en sta locatie delen toe. Lukt het nog steeds niet? Probeer een andere browser.';
-      document.getElementById('retryButton').style.display = 'none';
-    }
+    // ---- Inchecken ----
+    let isVersturenBezig = false;
 
     function verzenden(event) {
       event.preventDefault();
+      if (isVersturenBezig) return;
 
       const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum_skills");
-
+      const laatstIngecheckt = localStorage.getItem("checkin_datum_pl");
       if (laatstIngecheckt === vandaag) {
         toonMelding("⏳ Je hebt vandaag al ingecheckt op dit apparaat.", "info");
         return;
       }
 
       const form = event.target;
+      const submitBtn = document.getElementById('submitButton');
+
+      // Gegevens verzamelen
       const formData = new FormData(form);
       formData.append('tijd', new Date().toLocaleString());
 
-      fetch("https://script.google.com/macros/s/AKfycbycrqF6B87tM2KBVucIUDDdXIebDw5lFfZ2CfR1Ez5-VjY-YSms2Jse-b5UDZ_pu1tO/exec", {
+      // Versturen
+      isVersturenBezig = true;
+      setLoading(submitBtn, "Bezig met inchecken…");
+      disableForm(form, true);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      fetch("https://script.google.com/macros/s/AKfycbzqa0p7bQxTAWhq-bFKxsgVZ6uyOjhbKN8SxPVbBgjGxFOUKN7nY5FEinRmIuZla0daNQ/exec", {
         method: "POST",
-        body: formData
+        body: formData,
+        signal: controller.signal
       })
       .then(response => response.text())
       .then(text => {
         if (text === "OK") {
           toonMelding("✅ Je bent ingecheckt. Dankjewel!", "success");
-          localStorage.setItem("checkin_datum_skills", vandaag);
+          localStorage.setItem("checkin_datum_pl", vandaag);
           form.reset();
-          document.getElementById("formulier").style.display = "none";
-          document.getElementById("status").textContent = "";
+          setSuccess(submitBtn, "✅ Ingecheckt");
         } else if (text === "AL_GEDAAN_VANDAAG") {
           toonMelding("⏳ Je hebt vandaag al ingecheckt (volgens het systeem).", "info");
+          clearLoading(submitBtn);
+          disableForm(form, false);
         } else {
           toonMelding("❌ Oei! Het opslaan ging mis.", "error");
+          clearLoading(submitBtn);
+          disableForm(form, false);
         }
       })
       .catch(error => {
-        toonMelding("❌ Foutje bij het versturen: " + error.message, "error");
+        const msg = (error.name === 'AbortError')
+          ? "⏱️ Het duurt te lang. Controleer je internet en probeer opnieuw."
+          : "❌ Foutje bij het versturen: " + error.message;
+        toonMelding(msg, "error");
+        clearLoading(submitBtn);
+        disableForm(form, false);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+        isVersturenBezig = false;
       });
     }
   </script>
