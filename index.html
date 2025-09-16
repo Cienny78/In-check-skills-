@@ -58,7 +58,7 @@
   </style>
 </head>
 <body>
-  <h2>Check-in PL1 of PL2</h2>
+  <h2>Check-in PL1 Online </h2>
 
   <div id="melding"></div>
 
@@ -89,11 +89,11 @@
       if (!btn) return;
       btn.disabled = false;
       if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+      btn.classList.remove('btn-ok');
     }
     function setSuccess(btn, text) {
       if (!btn) return;
       btn.classList.add('btn-ok');
-      btn.disabled = true;
       btn.innerHTML = text;
     }
     function disableForm(form, on) {
@@ -114,13 +114,6 @@
     function verzenden(event) {
       event.preventDefault();
       if (isVersturenBezig) return;
-
-      const vandaag = new Date().toISOString().split("T")[0];
-      const laatstIngecheckt = localStorage.getItem("checkin_datum_pl");
-      if (laatstIngecheckt === vandaag) {
-        toonMelding("⏳ Je hebt vandaag al ingecheckt op dit apparaat.", "info");
-        return;
-      }
 
       const form = event.target;
       const submitBtn = document.getElementById('submitButton');
@@ -146,9 +139,12 @@
       .then(text => {
         if (text === "OK") {
           toonMelding("✅ Je bent ingecheckt. Dankjewel!", "success");
-          localStorage.setItem("checkin_datum_pl", vandaag);
           form.reset();
           setSuccess(submitBtn, "✅ Ingecheckt");
+          setTimeout(() => {
+            clearLoading(submitBtn);
+            disableForm(form, false);
+          }, 2000); // na 2 seconden weer klaar voor volgende student
         } else if (text === "AL_GEDAAN_VANDAAG") {
           toonMelding("⏳ Je hebt vandaag al ingecheckt (volgens het systeem).", "info");
           clearLoading(submitBtn);
